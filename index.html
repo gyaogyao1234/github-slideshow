@@ -1,13 +1,612 @@
----
-layout: presentation
----
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+  <title>バイブコーティング - 動きで伝わるビジュアル</title>
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --ink: #d7e2ff;
+      --ink-dim: #90a4c2;
+      --accent-1: #7cf7ff;
+      --accent-2: #7a5cff;
+      --accent-3: #00ffa3;
+      --panel: #0f1620;
+      --panel-2: #0a111a;
+      --grid-c: rgba(255,255,255,0.06);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 800px at 70% -10%, rgba(124,247,255,0.15), transparent 50%),
+                  radial-gradient(1000px 700px at -10% 10%, rgba(122,92,255,0.2), transparent 40%),
+                  linear-gradient(180deg, #0b0f14, #06090d 60%);
+      color: var(--ink);
+      font: 16px/1.6 system-ui, -apple-system, Segoe UI, Roboto, "ヒラギノ角ゴ ProN", "Noto Sans JP", sans-serif;
+      overflow-x: hidden;
+    }
+    .wrap {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 32px 20px 80px;
+    }
 
-{% for post in site.posts reversed %}
-	{% include slide.html %}
-	<div class="page-break"></div>
-{% endfor %}
-{% unless site.simple-slideshow %}
-{% if site.overview %}
-<section id="overview" class="step" {% for attr in site.overview-data %} data-{{attr[0]}}="{{attr[1]}}"{% endfor %}></section>
-{% endif %}
-{% endunless %}
+    /* Header */
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .title {
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      line-height: 1.05;
+      font-size: clamp(28px, 6vw, 56px);
+      margin: 0;
+      background: conic-gradient(from 180deg at 50% 50%, var(--accent-1), var(--accent-2), var(--accent-3), var(--accent-1));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      filter: drop-shadow(0 8px 24px rgba(0,0,0,0.4));
+    }
+    .subtitle {
+      color: var(--ink-dim);
+      margin: -6px 0 0;
+      font-size: clamp(14px, 2.4vw, 18px);
+    }
+
+    /* Compare Section */
+    .stage {
+      position: relative;
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+    .compare {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/9;
+      min-height: 340px;
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border-radius: 12px;
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    /* Base surface pattern (matte) */
+    .pane {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0)) 0 0 / 100% 100% no-repeat,
+        radial-gradient(900px 500px at 30% -20%, rgba(124,247,255,0.1), transparent 60%),
+        radial-gradient(700px 400px at 120% 120%, rgba(122,92,255,0.12), transparent 60%),
+        repeating-linear-gradient(135deg, rgba(255,255,255,0.05) 0 2px, transparent 2px 8px);
+      filter: saturate(0.9) contrast(1.02);
+    }
+    .pane--before::after {
+      content: "素肌";
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.45);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.75);
+      text-shadow: 0 1px 0 rgba(0,0,0,0.4);
+    }
+
+    /* Coated surface */
+    .pane--after {
+      clip-path: inset(0 0 0 var(--split, 50%));
+      background:
+        /* micro flake sparkle */
+        radial-gradient(1200px 800px at 70% -10%, rgba(124,247,255,0.18), transparent 50%),
+        radial-gradient(1000px 700px at -10% 10%, rgba(122,92,255,0.22), transparent 40%),
+        repeating-linear-gradient(135deg, rgba(255,255,255,0.08) 0 2px, transparent 2px 8px),
+        linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+      position: absolute;
+      inset: 0;
+    }
+    .pane--after::after {
+      content: "コーティング";
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: rgba(255,255,255,0.85);
+      text-shadow: 0 1px 0 rgba(0,0,0,0.4);
+    }
+
+    /* Gloss highlight layer */
+    .gloss {
+      pointer-events: none;
+      position: absolute;
+      inset: 0;
+      mix-blend-mode: screen;
+      opacity: 0.9;
+      filter: blur(0.5px) saturate(1.1);
+      background:
+        radial-gradient(120px 40px at var(--gx, -20%) var(--gy, 50%), rgba(255,255,255,0.75), rgba(255,255,255,0) 60%),
+        linear-gradient(100deg, rgba(255,255,255,0.15), rgba(255,255,255,0.0) 20% 80%, rgba(255,255,255,0.15)),
+        radial-gradient(900px 500px at 70% -50%, rgba(124,247,255,0.2), rgba(124,247,255,0) 60%);
+      clip-path: inset(0 0 0 var(--split, 50%));
+      transition: clip-path 0.05s linear;
+    }
+
+    /* Divider (slider) */
+    .divider {
+      position: absolute;
+      top: 0; bottom: 0;
+      left: var(--split, 50%);
+      width: 1px;
+      transform: translateX(-0.5px);
+      background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(255,255,255,0.1));
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.4);
+    }
+    .handle {
+      position: absolute;
+      top: 50%; left: -18px;
+      transform: translateY(-50%);
+      width: 36px; height: 36px;
+      display: grid; place-items: center;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #1e2633, #0c121b);
+      border: 1px solid rgba(255,255,255,0.25);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.25);
+      color: var(--ink);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      cursor: ew-resize;
+      user-select: none;
+    }
+    .handle::before {
+      content: "⇔";
+      font-size: 16px;
+      opacity: 0.9;
+    }
+
+    /* Canvas overlays for effects */
+    canvas.fx {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 14px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+      color: var(--ink);
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: transform 0.06s ease, background 0.2s ease, border-color 0.2s ease;
+    }
+    .btn:hover { transform: translateY(-1px); border-color: rgba(124,247,255,0.5); }
+    .btn.secondary {
+      background: linear-gradient(180deg, rgba(124,247,255,0.08), rgba(124,247,255,0.02));
+    }
+    .meter {
+      display: flex; align-items: center; gap: 10px;
+      color: var(--ink-dim);
+      font-size: 13px;
+    }
+    input[type="range"] {
+      appearance: none; width: 180px; height: 8px; border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent-1), var(--accent-2), var(--accent-3));
+      outline: none; opacity: 0.9;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none; width: 18px; height: 18px; border-radius: 999px;
+      background: #fff; border: 2px solid #0b0f14;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.45);
+    }
+
+    .note {
+      margin-top: 10px;
+      color: var(--ink-dim);
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <h1 class="title">バイブコーティングの魅力を、動きで体感。</h1>
+      <p class="subtitle">深い艶・撥水・防汚・耐傷性。触れて、動いて、違いが分かるインタラクティブ表現。</p>
+    </header>
+
+    <section class="stage">
+      <div class="compare" id="compare">
+        <div class="pane pane--before" id="paneBefore"></div>
+        <div class="pane pane--after" id="paneAfter"></div>
+        <div class="gloss" id="gloss"></div>
+        <canvas class="fx" id="canvasBefore"></canvas>
+        <canvas class="fx" id="canvasAfter"></canvas>
+        <div class="divider" id="divider">
+          <div class="handle" id="handle"></div>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="btns">
+          <button class="btn secondary" id="btnHydro">撥水性デモ</button>
+          <button class="btn secondary" id="btnScratch">耐傷性デモ</button>
+          <button class="btn" id="btnSmudge">指紋防止</button>
+          <button class="btn" id="btnReset">リセット</button>
+        </div>
+        <div class="meter">
+          <span>艶の強さ</span>
+          <input type="range" id="shine" min="0" max="100" value="65"/>
+        </div>
+      </div>
+      <p class="note">中央のつまみをドラッグすると、素肌とコーティングの比較ができます。</p>
+    </section>
+  </div>
+
+  <script>
+    const compare = document.getElementById('compare');
+    const paneBefore = document.getElementById('paneBefore');
+    const paneAfter  = document.getElementById('paneAfter');
+    const gloss      = document.getElementById('gloss');
+    const divider    = document.getElementById('divider');
+    const handle     = document.getElementById('handle');
+
+    const canvasBefore = document.getElementById('canvasBefore');
+    const canvasAfter  = document.getElementById('canvasAfter');
+
+    const ctxBefore = canvasBefore.getContext('2d');
+    const ctxAfter  = canvasAfter.getContext('2d');
+
+    const btnHydro   = document.getElementById('btnHydro');
+    const btnScratch = document.getElementById('btnScratch');
+    const btnSmudge  = document.getElementById('btnSmudge');
+    const btnReset   = document.getElementById('btnReset');
+    const shineRange = document.getElementById('shine');
+
+    let split = 0.5;
+    let rafId = 0;
+    let timeStart = performance.now();
+
+    const DPR = Math.min(2, window.devicePixelRatio || 1);
+
+    function resize() {
+      const rect = compare.getBoundingClientRect();
+      for (const c of [canvasBefore, canvasAfter]) {
+        c.style.width  = rect.width + 'px';
+        c.style.height = rect.height + 'px';
+        c.width  = Math.floor(rect.width * DPR);
+        c.height = Math.floor(rect.height * DPR);
+      }
+    }
+
+    function setSplit(ratio) {
+      split = Math.max(0.05, Math.min(0.95, ratio));
+      compare.style.setProperty('--split', (split * 100) + '%');
+    }
+
+    // Drag to change split
+    (function initDrag() {
+      let dragging = false;
+      function pxToRatio(px) {
+        const rect = compare.getBoundingClientRect();
+        return (px - rect.left) / rect.width;
+      }
+      function onDown(e) {
+        dragging = true;
+        document.body.style.cursor = 'ew-resize';
+        onMove(e);
+      }
+      function onMove(e) {
+        if (!dragging) return;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        setSplit(pxToRatio(clientX));
+      }
+      function onUp() {
+        dragging = false;
+        document.body.style.cursor = '';
+      }
+      divider.addEventListener('mousedown', onDown);
+      divider.addEventListener('touchstart', onDown, { passive: true });
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('touchmove', onMove, { passive: true });
+      window.addEventListener('mouseup', onUp);
+      window.addEventListener('touchend', onUp);
+    })();
+
+    // Hydrophobic droplets on coated side
+    const droplets = [];
+    function spawnDroplet(x, y) {
+      const r = 3 + Math.random() * 4;
+      droplets.push({ x, y, r, vx: (Math.random()*0.6-0.3), vy: 0, life: 1 });
+    }
+    function hydroBurst() {
+      const rect = compare.getBoundingClientRect();
+      // spawn only on coated (right) area
+      const startX = rect.width * split + 10;
+      for (let i = 0; i < 32; i++) {
+        const x = startX + Math.random() * (rect.width - startX - 10);
+        const y = -10 + Math.random() * 40;
+        spawnDroplet(x, y);
+      }
+    }
+
+    // Scratch strokes
+    const scratchesBefore = [];
+    const scratchesAfter  = [];
+    let scribbling = false;
+    function initScratch() {
+      function getLocal(e) {
+        const rect = compare.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return { x: (clientX - rect.left), y: (clientY - rect.top) };
+      }
+      function onDown(e) {
+        if (!scratchMode) return;
+        scribbling = true;
+        const p = getLocal(e);
+        addScratchPoint(p.x, p.y, true);
+      }
+      function onMove(e) {
+        if (!scribbling || !scratchMode) return;
+        const p = getLocal(e);
+        addScratchPoint(p.x, p.y, false);
+      }
+      function onUp() { scribbling = false; }
+      compare.addEventListener('pointerdown', onDown);
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+      compare.addEventListener('touchstart', onDown, { passive: true });
+      window.addEventListener('touchmove', onMove, { passive: true });
+      window.addEventListener('touchend', onUp);
+    }
+
+    function addScratchPoint(x, y, start) {
+      const rect = compare.getBoundingClientRect();
+      const isRight = x / rect.width >= split;
+      const target = isRight ? scratchesAfter : scratchesBefore;
+      const last = target[target.length - 1];
+      if (start || !last) {
+        target.push({ points: [{x, y}], age: 0 });
+      } else {
+        last.points.push({x, y});
+      }
+    }
+
+    // Smudge (fingerprint) demo
+    const smudges = [];
+    function addSmudge(x, y) {
+      const r = 20 + Math.random()*10;
+      smudges.push({ x, y, r, a: 0.16 });
+    }
+
+    // Modes
+    let scratchMode = false;
+
+    btnHydro.addEventListener('click', () => hydroBurst());
+    btnScratch.addEventListener('click', () => {
+      scratchMode = !scratchMode;
+      btnScratch.classList.toggle('secondary');
+      btnScratch.textContent = scratchMode ? '耐傷性デモ中（ドラッグで傷）' : '耐傷性デモ';
+    });
+    btnSmudge.addEventListener('click', () => {
+      // add smudges to left side (uncoated), repel on right side
+      const rect = compare.getBoundingClientRect();
+      for (let i=0; i<12; i++) {
+        addSmudge(20 + Math.random() * (rect.width*split - 40), 40 + Math.random() * (rect.height - 80));
+      }
+    });
+    btnReset.addEventListener('click', () => {
+      droplets.length = 0;
+      scratchesBefore.length = 0;
+      scratchesAfter.length = 0;
+      smudges.length = 0;
+      scratchMode = false;
+      btnScratch.classList.add('secondary');
+      btnScratch.textContent = '耐傷性デモ';
+    });
+
+    shineRange.addEventListener('input', () => {
+      gloss.style.opacity = (parseInt(shineRange.value,10) / 100) * 1.25;
+    });
+
+    function drawSmudges(ctx) {
+      for (const s of smudges) {
+        if (s.a <= 0.01) continue;
+        const g = ctx.createRadialGradient(s.x*DPR, s.y*DPR, s.r*0.2*DPR, s.x*DPR, s.y*DPR, s.r*DPR);
+        g.addColorStop(0, `rgba(0,0,0,${s.a*0.35})`);
+        g.addColorStop(1, `rgba(0,0,0,0)`);
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(s.x*DPR, s.y*DPR, s.r*DPR, 0, Math.PI*2);
+        ctx.fill();
+        s.a *= 0.998; // very slowly fade
+      }
+    }
+
+    function drawScratches(ctx, arr, heal=false) {
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      for (const stroke of arr) {
+        const opacity = Math.max(0, 1 - stroke.age);
+        if (opacity <= 0.01) continue;
+        ctx.strokeStyle = `rgba(255,255,255,${heal ? opacity*0.25 : opacity*0.6})`;
+        ctx.lineWidth = heal ? 1.2 * DPR : 1.8 * DPR;
+        ctx.beginPath();
+        for (let i=0; i<stroke.points.length; i++) {
+          const p = stroke.points[i];
+          const x = p.x * DPR, y = p.y * DPR;
+          if (i===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        stroke.age += heal ? 0.025 : 0.002; // heal faster on coated side
+      }
+    }
+
+    function updateDroplets() {
+      const rect = compare.getBoundingClientRect();
+      const width = rect.width;
+      const height = rect.height;
+      for (const d of droplets) {
+        // simulate gravity + high contact angle (beading & rolling)
+        d.vy += 0.12; // gravity
+        d.vx += 0.02; // slight right drift
+        d.vx *= 0.995; // drag
+        d.vy *= 0.997;
+        d.x += d.vx;
+        d.y += d.vy;
+        // collide with divider edge slightly (as if lower friction)
+        if (d.x < width*split + d.r) d.x = width*split + d.r;
+        // cull off screen
+        if (d.y - d.r > height + 10) d.life = 0;
+      }
+      for (let i=droplets.length-1; i>=0; i--) {
+        if (droplets[i].life <= 0) droplets.splice(i,1);
+      }
+    }
+
+    function drawDroplets(ctx) {
+      ctx.save();
+      // clip to coated side only
+      const rect = compare.getBoundingClientRect();
+      ctx.beginPath();
+      ctx.rect(rect.width*split, 0, rect.width*(1-split), rect.height);
+      ctx.clip();
+
+      for (const d of droplets) {
+        // body
+        const x = d.x * DPR, y = d.y * DPR, r = d.r * DPR;
+        const g = ctx.createRadialGradient(x - r*0.4, y - r*0.6, r*0.2, x, y, r*1.4);
+        g.addColorStop(0, 'rgba(255,255,255,0.85)');
+        g.addColorStop(0.4, 'rgba(124,247,255,0.55)');
+        g.addColorStop(1, 'rgba(124,247,255,0.0)');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+        // rim highlight
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+        ctx.lineWidth = 1 * DPR;
+        ctx.beginPath(); ctx.arc(x - r*0.2, y - r*0.3, r*0.7, -0.2, 1.1); ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function animateGloss(t) {
+      const rect = compare.getBoundingClientRect();
+      const speed = 0.0003;
+      const x = ((t - timeStart) * speed) % 1;
+      const gx = -20 + (split*100) + (x * (100 - split*100 + 20));
+      const gy = 45 + Math.sin((t - timeStart) * 0.001) * 8;
+      gloss.style.setProperty('--gx', gx + '%');
+      gloss.style.setProperty('--gy', gy + '%');
+    }
+
+    function render() {
+      const now = performance.now();
+      animateGloss(now);
+
+      // clear canvases
+      ctxBefore.clearRect(0,0,canvasBefore.width,canvasBefore.height);
+      ctxAfter.clearRect(0,0,canvasAfter.width,canvasAfter.height);
+
+      // subtle grid/bokeh to make surface feel premium
+      drawAmbient(ctxBefore, canvasBefore);
+      drawAmbient(ctxAfter, canvasAfter);
+
+      // smudges only on left (uncoated) side
+      drawSmudges(ctxBefore);
+
+      // scratches
+      drawScratches(ctxBefore, scratchesBefore, false);
+      drawScratches(ctxAfter, scratchesAfter, true);
+
+      // hydrophobic drops on right
+      updateDroplets();
+      drawDroplets(ctxAfter);
+
+      rafId = requestAnimationFrame(render);
+    }
+
+    function drawAmbient(ctx, canvas) {
+      const w = canvas.width, h = canvas.height;
+      ctx.save();
+      ctx.globalAlpha = 0.08;
+      // soft diagonal grid
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.lineWidth = 1 * DPR;
+      const step = 26 * DPR;
+      ctx.beginPath();
+      for (let i=-h; i<w; i+=step) {
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i + h, h);
+      }
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      // bokeh sparkles
+      const t = performance.now()*0.001;
+      for (let i=0; i<18; i++) {
+        const px = (Math.sin(t*0.5 + i*1.3) * 0.5 + 0.5) * w;
+        const py = (Math.cos(t*0.7 + i*0.9) * 0.5 + 0.5) * h;
+        const r  = (Math.sin(t + i) * 0.5 + 0.5) * 2.5 * DPR + 0.5*DPR;
+        const g = ctx.createRadialGradient(px, py, 0, px, py, r*8);
+        g.addColorStop(0, 'rgba(124,247,255,0.35)');
+        g.addColorStop(1, 'rgba(124,247,255,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(px, py, r*6, 0, Math.PI*2); ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // Reposition on resize
+    window.addEventListener('resize', () => {
+      resize();
+    });
+
+    // Init
+    setSplit(0.5);
+    resize();
+    initScratch();
+    cancelAnimationFrame(rafId); rafId = requestAnimationFrame(render);
+
+    // Clicks on right side add droplets when hydro mode not used
+    compare.addEventListener('click', (e) => {
+      const rect = compare.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      if (x / rect.width >= split) {
+        spawnDroplet(x, y);
+      }
+    });
+
+    // Prevent passive scroll while dragging on some devices
+    document.addEventListener('gesturestart', (e) => e.preventDefault());
+  </script>
+</body>
+</html>
